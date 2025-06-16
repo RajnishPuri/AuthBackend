@@ -2,6 +2,7 @@ const User = require('../model/userModel');
 const Otp = require('../model/otpModel');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { default: sendVerificationEmail } = require('../utils/sendMail');
 
 exports.sendOtp = async (req, res) => {
     try {
@@ -30,11 +31,13 @@ exports.sendOtp = async (req, res) => {
         if (existingOtp) {
             existingOtp.otp = otpValue;
             await existingOtp.save();
+            await sendVerificationEmail(existingOtp.email, otpValue);
         }
         else {
             const otpNew = await Otp.create({
                 email, otp: otpValue
             });
+            await sendVerificationEmail(email, otpValue);
         }
 
         return res.status(200).json({
@@ -145,4 +148,25 @@ exports.loginUser = async (req, res) => {
         console.log(e.message);
     }
 
+}
+
+exports.getUserDetails = async (req, res) => {
+    try {
+        const decode = req.decode;
+        console.log("decode : ", decode);
+
+        const userDetails = await User.findOne({ _id: decode.userId });
+
+        return res.status(200).json({
+            success: true,
+            message: "Decode message",
+            userDetails
+        })
+    }
+    catch (e) {
+        return res.status(300).json({
+            success: false,
+            message: e.message
+        })
+    }
 }
